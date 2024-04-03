@@ -39,7 +39,8 @@ require("lazy").setup {{
     'windwp/nvim-autopairs',
     event = "InsertEnter",
     opts = {} -- this is equalent to setup({}) function
-  }
+  },
+  {"ellisonleao/glow.nvim", config = true, cmd = "Glow"}
 }
 
 vim.cmd[[colorscheme tokyonight]]
@@ -49,6 +50,7 @@ local lspconfig = require('lspconfig')
 lspconfig.pyright.setup {}
 lspconfig.clangd.setup {}
 lspconfig.zls.setup {}
+lspconfig.gopls.setup {}
 lspconfig.rust_analyzer.setup {
   -- Server-specific settings. See `:help lspconfig-setup`
   settings = {
@@ -95,6 +97,13 @@ vim.api.nvim_create_autocmd('LspAttach', {
   end,
 })
 
+vim.api.nvim_create_autocmd("BufWritePre", {
+    pattern = "*.go",
+    callback = function()
+        vim.lsp.buf.format()
+    end
+})
+
 local cmp = require 'cmp'
 cmp.setup {
   mapping = cmp.mapping.preset.insert({
@@ -104,7 +113,7 @@ cmp.setup {
     ["<C-f>"] = cmp.mapping.scroll_docs(4),
     ["<C-Space>"] = cmp.mapping.complete(), -- show completion suggestions
     ["<C-e>"] = cmp.mapping.abort(), -- close completion window
-    ["<CR>"] = cmp.mapping.confirm({ select = false }),
+    ["<CR>"] = cmp.mapping.confirm({ select = true }),
   }),
   sources = {
     { name = 'nvim_lsp' },
@@ -155,3 +164,16 @@ local enabled_component = {"terminal"}
 for _, component in ipairs(enabled_component) do
     require(component)()
 end
+
+vim.api.nvim_create_user_command("BufferDelete", function()
+    local modified = vim.api.nvim_buf_get_option(0, "modified")
+    if modified then
+        local user_choice = vim.fn.input("The file is not saved, whether to force delete? Press enter or input [y/n]:")
+        if user_choice == "y" or string.len(user_choice) == 0 then
+            vim.cmd("bd!")
+        end
+        return
+    end
+    local force = not vim.bo.buflisted or vim.bo.buftype == "nofile"
+    vim.cmd(force and "bd!" or string.format("bp | bd %s", vim.api.nvim_get_current_buf()))
+end, { desc = "Delete the current Buffer while maintaining the window layout" })
