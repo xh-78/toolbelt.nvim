@@ -1,5 +1,19 @@
 local terminal
 local terminal_show = false
+local pre_cmd
+
+local function run_(cmd)
+    if terminal_show then
+        vim.api.nvim_set_current_win(terminal.win)
+        vim.cmd 'startinsert'
+    else
+        toggle_terminal()
+    end
+    local cmd_str = table.concat(cmd, ' ') .. ' <CR>'
+    local keys = vim.api.nvim_replace_termcodes(cmd_str, true, true, true)
+    vim.api.nvim_feedkeys(keys, 'a', true)
+    pre_cmd = cmd
+end
 
 function toggle_terminal()
     if terminal_show then
@@ -36,4 +50,13 @@ end
 return function()
     vim.api.nvim_set_keymap('', '<leader>tt', '<cmd>lua toggle_terminal()<CR>', {noremap = true})
     vim.api.nvim_set_keymap('t', '<leader>tt', '<cmd>lua toggle_terminal()<CR>', {noremap = true})
+    vim.api.nvim_create_user_command('Run', function(opts)
+        run_(opts.fargs)
+    end, { nargs = '*', complete = 'shellcmd' })
+    vim.api.nvim_create_user_command('ReRun', function(opts)
+        if pre_cmd then
+            run_(pre_cmd)
+        end
+    end, { nargs = 0})
+    vim.api.nvim_set_keymap('', '<leader>rr', ':ReRun<CR>', {noremap = true})
 end

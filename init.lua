@@ -159,7 +159,7 @@ vim.api.nvim_create_autocmd({"BufNewFile"}, {
   end
 })
 
-local enabled_component = {"terminal", 'runner'}
+local enabled_component = {"terminal"}
 
 for _, component in ipairs(enabled_component) do
     require(component)()
